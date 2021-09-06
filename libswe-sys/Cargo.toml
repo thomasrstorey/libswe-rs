@@ -1,0 +1,22 @@
+[package]
+name = "libswe-sys-auto"
+version = "0.1.0"
+edition = "2018"
+authors = ["Thomas R Storey"]
+build = "build/build.rs"
+license = "AGPL-3.0+"
+description = """
+Rust bindings for libswe (the Swiss Ephemeris).
+
+Uses bindgen to generate complete and correct bindings at compile time.
+"""
+readme = "../README.md"
+repository = "https://github.com/thomasrstorey/libswe-rs"
+links = "libswe"
+
+[lib]
+name = "libswe_sys"
+
+[build-dependencies]
+bindgen = "0.59.1"
+cc = "1.0.70"
