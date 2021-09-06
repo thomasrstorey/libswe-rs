@@ -78,6 +78,8 @@ fn main() {
         .parse_callbacks(Box::new(MacroCallback {
             macros: macros.clone(),
         }))
+        .allowlist_function("swe_.*")
+        .allowlist_var("SE.*")
         .generate()
         .expect("Unable to generate bindings.");
 
