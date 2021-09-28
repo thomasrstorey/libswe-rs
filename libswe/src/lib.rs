@@ -15,10 +15,13 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+pub mod core;
+
 #[cfg(test)]
 mod tests {
+    use super::*;
     #[test]
     fn it_works() {
-        assert_eq!(2 + 2, 4);
+        core::set_ephe_path(None);
     }
 }
