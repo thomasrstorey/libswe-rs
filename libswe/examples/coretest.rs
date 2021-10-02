@@ -24,21 +24,37 @@ fn main() {
     libswe::core::set_ephe_path(Option::None);
     let julian_day_ut = libswe::core::julday(Utc.ymd(1991, 10, 13).and_hms(20, 0, 0));
     println!("Planet\tlon\tlat\tdist");
-    for body in Body::Sun..Body::Chiron {
+    let bodies = [
+        Body::Sun,
+        Body::Moon,
+        Body::Mercury,
+        Body::Venus,
+        Body::Mars,
+        Body::Jupiter,
+        Body::Saturn,
+        Body::Neptune,
+        Body::Uranus,
+        Body::Pluto,
+    ];
+    for body in bodies {
         if body == Body::Earth {
             continue;
         }
         let flag_set = [Flag::HighPrecSpeed];
         let calc_result = libswe::core::calc_ut(julian_day_ut, body, &flag_set);
-        if calc_result.code < 0 {
-            eprintln!("Error: {}", calc_result.error);
-        } else {
-            let name = libswe::core::get_planet_name(body);
+        match calc_result {
+            Ok(calc) => {
+                let name = libswe::core::get_planet_name(body);
 
-            println!(
-                "{}\t{}\t{}\t{}",
-                name, calc_result.lng, calc_result.lat, calc_result.dist,
-            );
+                println!(
+                    "{}\t{}\t{}\t{}",
+                    name,
+                    calc.pos.get(0).unwrap(),
+                    calc.pos.get(1).unwrap(),
+                    calc.pos.get(2).unwrap()
+                );
+            }
+            Err(err) => eprintln!("{}", err),
         }
     }
     libswe::core::close();

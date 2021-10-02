@@ -2,11 +2,13 @@ use chrono::DateTime;
 use chrono::Datelike;
 use chrono::Timelike;
 use chrono::Utc;
+use libswe_sys::swe_get_planet_name;
 use libswe_sys::{
     swe_calc_ut, swe_close, swe_get_current_file_data, swe_get_library_path, swe_julday,
     swe_set_ephe_path, swe_set_jpl_file, swe_version, SE_GREG_CAL,
 };
 use std::env;
+use std::fmt;
 use std::str;
 use std::sync::Once;
 use std::{path::Path, ptr::null_mut};
@@ -53,9 +55,8 @@ pub struct FileData {
     pub ephemeris_num: i32,
 }
 
-// TODO: use enum-iterator crate to make it possible to iterate over Body values
 #[repr(i32)]
-#[derive(PartialEq)]
+#[derive(PartialEq, Copy, Clone)]
 pub enum Body {
     EclipticNutation = -1,
     Sun = 0,
@@ -107,15 +108,25 @@ pub enum Flag {
     CenterOfBody = 1024 * 1024,
 }
 
-pub struct CalcResult {
-    pub lng: f64,
-    pub lat: f64,
-    pub dist: f64,
-    pub lng_speed: f64,
-    pub lat_speed: f64,
-    pub dist_speed: f64,
-    pub code: i32,
-    pub error: String,
+pub struct CalculationResult {
+    pub pos: Vec<f64>,
+    pub vel: Vec<f64>,
+}
+
+#[derive(Debug)]
+pub struct CalculationError {
+    code: i32,
+    msg: String,
+}
+
+impl fmt::Display for CalculationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "CalculationError {{ code: {} message: {} }}",
+            self.code, self.msg
+        )
+    }
 }
 
 pub fn set_ephe_path(path: Option<&str>) {
@@ -217,7 +228,11 @@ pub fn get_current_file_data(ifno: i32) -> FileData {
     }
 }
 
-pub fn calc_ut(julian_day_ut: f64, body: Body, flag_set: &[Flag]) -> CalcResult {
+pub fn calc_ut(
+    julian_day_ut: f64,
+    body: Body,
+    flag_set: &[Flag],
+) -> Result<CalculationResult, CalculationError> {
     let mut flags: i32 = 0;
     for f in flag_set.iter() {
         flags = flags | *f as i32;
@@ -233,16 +248,14 @@ pub fn calc_ut(julian_day_ut: f64, body: Body, flag_set: &[Flag]) -> CalcResult 
             error_i.as_mut_ptr() as *mut i8,
         )
     };
-    let error = String::from(str::from_utf8(&error_i).unwrap());
-    CalcResult {
-        lng: results[0],
-        lat: results[1],
-        dist: results[2],
-        lng_speed: results[3],
-        lat_speed: results[4],
-        dist_speed: results[5],
-        code,
-        error,
+    let msg = String::from(str::from_utf8(&error_i).unwrap());
+    if code < 0 {
+        Err(CalculationError { code, msg })
+    } else {
+        Ok(CalculationResult {
+            pos: vec![results[0], results[1], results[2]],
+            vel: vec![results[3], results[4], results[5]],
+        })
     }
 }
 
@@ -259,7 +272,9 @@ pub fn julday(dt: DateTime<Utc>) -> f64 {
     }
 }
 
-// TODO: Implement get_planet_name
-// pub fn get_planet_name(body: Body) -> String {
-//      unsafe { swe_get_planet_name(body as i32) }
-// }
+pub fn get_planet_name(body: Body) -> String {
+    let mut name: [u8; MAXCH] = [0; MAXCH];
+
+    unsafe { swe_get_planet_name(body as i32, name.as_mut_ptr() as *mut i8) };
+    String::from_utf8(Vec::from(name)).unwrap()
+}
