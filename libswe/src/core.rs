@@ -108,9 +108,21 @@ pub enum Flag {
     CenterOfBody = 1024 * 1024,
 }
 
-pub struct CalculationResult {
+pub struct BodyResult {
     pub pos: Vec<f64>,
     pub vel: Vec<f64>,
+}
+
+pub struct EclipticAndNutationResult {
+    pub ecliptic_true_obliquity: f64,
+    pub ecliptic_mean_obliquity: f64,
+    pub nutation_lng: f64,
+    pub nutation_obliquity: f64,
+}
+
+pub enum CalculationResult {
+    Body(BodyResult),
+    EclipticAndNutation(EclipticAndNutationResult),
 }
 
 #[derive(Debug)]
@@ -252,10 +264,20 @@ pub fn calc_ut(
     if code < 0 {
         Err(CalculationError { code, msg })
     } else {
-        Ok(CalculationResult {
-            pos: vec![results[0], results[1], results[2]],
-            vel: vec![results[3], results[4], results[5]],
-        })
+        match body {
+            Body::EclipticNutation => Ok(CalculationResult::EclipticAndNutation(
+                EclipticAndNutationResult {
+                    ecliptic_true_obliquity: results[0],
+                    ecliptic_mean_obliquity: results[1],
+                    nutation_lng: results[2],
+                    nutation_obliquity: results[3],
+                },
+            )),
+            _ => Ok(CalculationResult::Body(BodyResult {
+                pos: vec![results[0], results[1], results[2]],
+                vel: vec![results[3], results[4], results[5]],
+            })),
+        }
     }
 }
 

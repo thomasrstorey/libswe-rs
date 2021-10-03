@@ -18,7 +18,7 @@
 extern crate libswe;
 
 use chrono::{TimeZone, Utc};
-use libswe::core::{Body, Flag};
+use libswe::core::{Body, CalculationResult, Flag};
 
 fn main() {
     libswe::core::set_ephe_path(Option::None);
@@ -43,17 +43,19 @@ fn main() {
         let flag_set = [Flag::HighPrecSpeed];
         let calc_result = libswe::core::calc_ut(julian_day_ut, body, &flag_set);
         match calc_result {
-            Ok(calc) => {
-                let name = libswe::core::get_planet_name(body);
-
-                println!(
-                    "{}\t{}\t{}\t{}",
-                    name,
-                    calc.pos.get(0).unwrap(),
-                    calc.pos.get(1).unwrap(),
-                    calc.pos.get(2).unwrap()
-                );
-            }
+            Ok(calc) => match calc {
+                CalculationResult::Body(body_result) => {
+                    let name = libswe::core::get_planet_name(body);
+                    println!(
+                        "{}\t{}\t{}\t{}",
+                        name,
+                        body_result.pos.get(0).unwrap(),
+                        body_result.pos.get(1).unwrap(),
+                        body_result.pos.get(2).unwrap()
+                    );
+                }
+                _ => (),
+            },
             Err(err) => eprintln!("{}", err),
         }
     }
